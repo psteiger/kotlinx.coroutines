@@ -128,7 +128,6 @@ class TestRunBlockingTest {
 
     @Test
     fun whenUsingTimeout_inAsync_doesNotTriggerWhenNotDelayed() = runBlockingTest {
-        val testScope = this
         val deferred = async {
             withTimeout(SLOW) {
                 delay(0)
@@ -195,7 +194,7 @@ class TestRunBlockingTest {
 
                 assertRunsFast {
                     job.join()
-                    throw job.getCancellationException().cause ?: assertFails { "expected exception" }
+                    throw job.getCancellationException().cause ?: TestException("expected exception")
                 }
             }
         }
@@ -235,12 +234,13 @@ class TestRunBlockingTest {
     fun callingAsyncFunction_executesAsyncBlockImmediately() = runBlockingTest {
         assertRunsFast {
             var executed = false
-            async {
+            val deferred = async {
                 delay(SLOW)
                 executed = true
             }
             advanceTimeBy(SLOW)
 
+            assertTrue(deferred.isCompleted)
             assertTrue(executed)
         }
     }
@@ -309,15 +309,6 @@ class TestRunBlockingTest {
     }
 
     @Test
-    fun runBlockingTestBuilder_throwsOnBadHandler() {
-        assertFailsWith<IllegalArgumentException> {
-            runBlockingTest(CoroutineExceptionHandler { _, _ -> }) {
-
-            }
-        }
-    }
-
-    @Test
     fun pauseDispatcher_disablesAutoAdvance_forCurrent() = runBlockingTest {
         var mutable = 0
         pauseDispatcher {
@@ -366,7 +357,7 @@ class TestRunBlockingTest {
             runBlockingTest {
                 val expectedError = TestException("hello")
 
-                val job = launch {
+                launch {
                     throw expectedError
                 }
 
@@ -426,15 +417,6 @@ class TestRunBlockingTest {
     @Test
     fun testOverrideExceptionHandler() = runBlockingTest(exceptionHandler) {
         assertSame(coroutineContext[CoroutineExceptionHandler], exceptionHandler)
-    }
-
-    @Test
-    fun testOverrideExceptionHandlerError() {
-        assertFailsWith<IllegalArgumentException> {
-            runBlockingTest(CoroutineExceptionHandler { _, _ -> }) {
-                fail("Unreached")
-            }
-        }
     }
 }
 

@@ -43,15 +43,20 @@ import kotlin.coroutines.*
  */
 @ExperimentalCoroutinesApi // Since 1.2.1, tentatively till 1.3.0
 public fun runBlockingTest(context: CoroutineContext = EmptyCoroutineContext, testBody: suspend TestCoroutineScope.() -> Unit) {
-    val (safeContext, dispatcher) = context.checkArguments()
+    val (safeContext, dispatcher) = context.checkTestScopeArguments()
     val startingJobs = safeContext.activeJobs()
     val scope = TestCoroutineScope(safeContext)
-    val deferred = scope.async {
-        scope.testBody()
-    }
-    dispatcher.advanceUntilIdle()
-    deferred.getCompletionExceptionOrNull()?.let {
-        throw it
+    try {
+        val deferred = scope.async {
+            scope.testBody()
+        }
+        dispatcher.advanceUntilIdle()
+        deferred.getCompletionExceptionOrNull()?.let {
+            throw it
+        }
+    } catch (e: CancellationException) {
+        scope.cleanupTestCoroutines()
+        throw e
     }
     scope.cleanupTestCoroutines()
     val endingJobs = safeContext.activeJobs()
@@ -79,17 +84,13 @@ public fun TestCoroutineScope.runBlockingTest(block: suspend TestCoroutineScope.
 public fun TestCoroutineDispatcher.runBlockingTest(block: suspend TestCoroutineScope.() -> Unit): Unit =
     runBlockingTest(this, block)
 
-private fun CoroutineContext.checkArguments(): Pair<CoroutineContext, DelayController> {
-    val dispatcher = when (val dispatcher = get(ContinuationInterceptor)) {
-        is DelayController -> dispatcher
-        null -> TestCoroutineDispatcher()
-        else -> throw IllegalArgumentException("Dispatcher must implement DelayController: $dispatcher")
+internal fun CoroutineContext.checkTestScopeArguments(): Pair<CoroutineContext, DelayController> {
+    // TODO optimize it
+    val dispatcher = get(ContinuationInterceptor).run {
+        this?.let { require(this is DelayController) { "Dispatcher must implement DelayController: $this" } }
+        this ?: TestCoroutineDispatcher()
     }
-    val exceptionHandler = when (val handler = get(CoroutineExceptionHandler)) {
-        is UncaughtExceptionCaptor -> handler
-        null -> TestCoroutineExceptionHandler()
-        else -> throw IllegalArgumentException("coroutineExceptionHandler must implement UncaughtExceptionCaptor: $handler")
-    }
-    val job = get(Job) ?: SupervisorJob()
-    return Pair(this + dispatcher + exceptionHandler + job, dispatcher)
+    val exceptionHandler = get(CoroutineExceptionHandler) ?: TestCoroutineExceptionHandler()
+    val job = get(Job) ?: Job()
+    return Pair(this + dispatcher + exceptionHandler + job, dispatcher as DelayController)
 }

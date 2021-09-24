@@ -34,15 +34,16 @@ public final class kotlinx/coroutines/test/TestCoroutineDispatcher : kotlinx/cor
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class kotlinx/coroutines/test/TestCoroutineExceptionHandler : kotlin/coroutines/AbstractCoroutineContextElement, kotlinx/coroutines/CoroutineExceptionHandler, kotlinx/coroutines/test/UncaughtExceptionCaptor {
+public final class kotlinx/coroutines/test/TestCoroutineExceptionHandler : kotlin/coroutines/AbstractCoroutineContextElement, kotlinx/coroutines/CoroutineExceptionHandler {
 	public fun <init> ()V
-	public fun cleanupTestCoroutinesCaptor ()V
-	public fun getUncaughtExceptions ()Ljava/util/List;
+	public final fun cleanupTestCoroutinesCaptor ()V
+	public final fun getUncaughtExceptions ()Ljava/util/List;
 	public fun handleException (Lkotlin/coroutines/CoroutineContext;Ljava/lang/Throwable;)V
 }
 
-public abstract interface class kotlinx/coroutines/test/TestCoroutineScope : kotlinx/coroutines/CoroutineScope, kotlinx/coroutines/test/DelayController, kotlinx/coroutines/test/UncaughtExceptionCaptor {
+public abstract interface class kotlinx/coroutines/test/TestCoroutineScope : kotlinx/coroutines/CoroutineScope, kotlinx/coroutines/test/DelayController {
 	public abstract fun cleanupTestCoroutines ()V
+	public abstract fun getUncaughtExceptions ()Ljava/util/List;
 }
 
 public final class kotlinx/coroutines/test/TestCoroutineScopeKt {

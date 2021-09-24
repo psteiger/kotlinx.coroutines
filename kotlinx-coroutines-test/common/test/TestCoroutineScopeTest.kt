@@ -9,14 +9,6 @@ import kotlin.test.*
 
 class TestCoroutineScopeTest {
     @Test
-    fun whenGivenInvalidExceptionHandler_throwsException() {
-        val handler = CoroutineExceptionHandler {  _, _ -> }
-        assertFails {
-            TestCoroutineScope(handler)
-        }
-    }
-
-    @Test
     fun whenGivenInvalidDispatcher_throwsException() {
         assertFails {
             TestCoroutineScope(Dispatchers.Default)

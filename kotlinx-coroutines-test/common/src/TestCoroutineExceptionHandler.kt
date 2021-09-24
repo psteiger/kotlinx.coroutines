@@ -11,7 +11,7 @@ import kotlin.coroutines.*
 /**
  * Access uncaught coroutine exceptions captured during test execution.
  */
-@ExperimentalCoroutinesApi // Since 1.2.1, tentatively till 1.3.0
+@Deprecated("Consider whether a plain `CoroutineExceptionHandler` would suffice. If not, please report your use case at https://github.com/Kotlin/kotlinx.coroutines/issues.", level = DeprecationLevel.ERROR)
 public interface UncaughtExceptionCaptor {
     /**
      * List of uncaught coroutine exceptions.
@@ -34,28 +34,34 @@ public interface UncaughtExceptionCaptor {
 
 /**
  * An exception handler that captures uncaught exceptions in tests.
+ *
+ * In order to work as intended, this exception handler requires that the [Job] of the test coroutine scope is a
+ * [SupervisorJob].
  */
-@ExperimentalCoroutinesApi // Since 1.2.1, tentatively till 1.3.0
 public class TestCoroutineExceptionHandler :
-    AbstractCoroutineContextElement(CoroutineExceptionHandler), UncaughtExceptionCaptor, CoroutineExceptionHandler
+    AbstractCoroutineContextElement(CoroutineExceptionHandler), CoroutineExceptionHandler
 {
     private val _exceptions = mutableListOf<Throwable>()
     private val _lock = SynchronizedObject()
+    private var _coroutinesCleanedUp = false
 
-    /** @suppress **/
+    @Suppress("INVISIBLE_MEMBER")
     override fun handleException(context: CoroutineContext, exception: Throwable) {
         synchronized(_lock) {
+            if (_coroutinesCleanedUp) {
+                handleCoroutineExceptionImpl(context, exception)
+                return
+            }
             _exceptions += exception
         }
     }
 
-    /** @suppress **/
-    override val uncaughtExceptions: List<Throwable>
+    public val uncaughtExceptions: List<Throwable>
         get() = synchronized(_lock) { _exceptions.toList() }
 
-    /** @suppress **/
-    override fun cleanupTestCoroutinesCaptor() {
+    public fun cleanupTestCoroutinesCaptor() {
         synchronized(_lock) {
+            _coroutinesCleanedUp = true
             val exception = _exceptions.firstOrNull() ?: return
             // log the rest
             _exceptions.drop(1).forEach { it.printStackTrace() }
