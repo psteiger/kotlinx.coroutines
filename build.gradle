@@ -2,11 +2,10 @@
  * Copyright 2016-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 
+
+import org.jetbrains.dokka.gradle.DokkaTaskPartial
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.HostManager
-import org.gradle.util.VersionNumber
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
-import org.jetbrains.dokka.gradle.DokkaMultiModuleTask
 
 apply plugin: 'jdk-convention'
 apply from: rootProject.file("gradle/opt-in.gradle")
@@ -155,6 +154,21 @@ configure(subprojects.findAll { !sourceless.contains(it.name) && it.name != core
     }
 }
 
+configure(subprojects.findAll { !unpublished.contains(it.name) }) {
+    if (it.name == "kotlinx-coroutines-bom" || it.name == "kotlinx.coroutines") return
+    if (it.name == coreModule) {
+        kotlin.sourceSets.jvmMain.dependencies {
+            delegate.project.dependencies {
+                api platform(project(":kotlinx-coroutines-bom"))
+            }
+        }
+    } else {
+        dependencies {
+            api platform(project(":kotlinx-coroutines-bom"))
+        }
+    }
+
+}
 // Configure subprojects with Kotlin sources
 configure(subprojects.findAll { !sourceless.contains(it.name) }) {
     // Use atomicfu plugin, it also adds all the necessary dependencies
