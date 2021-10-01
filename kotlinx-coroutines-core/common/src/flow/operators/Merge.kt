@@ -55,13 +55,17 @@ public fun <T, R> Flow<T>.flatMapConcat(transform: suspend (value: T) -> Flow<R>
  * Note that even though this operator looks very familiar, we discourage its usage in a regular application-specific flows.
  * Most likely, suspending operation in [map] operator will be sufficient and linear transformations are much easier to reason about.
  *
+ * ### Cancellation
+ * The direct cancellation of the flow produced by the [transform] operator will cancel neither the upstream
+ * nor the downstream, and the resulting flow will continue being collected.
+ *
  * ### Operator fusion
  *
  * Applications of [flowOn], [buffer], and [produceIn] _after_ this operator are fused with
  * its concurrent merging so that only one properly configured channel is used for execution of merging logic.
  *
  * @param concurrency controls the number of in-flight flows, at most [concurrency] flows are collected
- * at the same time. By default it is equal to [DEFAULT_CONCURRENCY].
+ * at the same time. By default, it is equal to [DEFAULT_CONCURRENCY].
  */
 @FlowPreview
 public fun <T, R> Flow<T>.flatMapMerge(
